@@ -2,152 +2,158 @@
 
 import { useState } from "react";
 import questions from "./questions";
+import Image from "next/image";
 
 export default function Home() {
-  const TOTAL_QUESTIONS = 10;
-
-  const [started, setStarted] = useState(false);
-  const [quiz, setQuiz] = useState([]);
   const [index, setIndex] = useState(0);
-  const [burnoutPoint, setBurnoutPoint] = useState(0);
-  const [done, setDone] = useState(false);
+  const [score, setScore] = useState(0);
+  const [finished, setFinished] = useState(false);
 
-  // Bắt đầu quiz → random 10 câu
-  const startQuiz = () => {
-    const shuffled = [...questions].sort(() => Math.random() - 0.5);
-    setQuiz(shuffled.slice(0, TOTAL_QUESTIONS));
-    setIndex(0);
-    setBurnoutPoint(0);
-    setDone(false);
-    setStarted(true);
-  };
+  // =====================
+  // HANDLE ANSWER
+  // =====================
+  const handleAnswer = (value) => {
+    const newScore = score + value;
+    setScore(newScore);
 
-  // Trả lời câu hỏi
-  const handleAnswer = (isYes) => {
-    if (isYes) {
-      setBurnoutPoint((prev) => prev + quiz[index].burnoutScore);
-    }
-
-    if (index < quiz.length - 1) {
+    if (index + 1 < questions.length) {
       setIndex(index + 1);
     } else {
-      setDone(true);
+      setFinished(true);
     }
   };
 
-  // % burnout
-  const burnoutPercent =
-    quiz.length === 0
-      ? 0
-      : Math.round((burnoutPoint / quiz.length) * 100);
+  // =====================
+  // RESULT + SOLUTIONS
+  // =====================
+  const getResult = () => {
+    if (score <= 6) {
+      return {
+        title: "Bạn đang ổn 👍",
+        desc: "Bạn chưa có dấu hiệu burnout rõ ràng. Hãy tiếp tục duy trì thói quen tốt.",
+        solutions: [
+          "Duy trì ngủ đủ giấc và vận động nhẹ mỗi ngày",
+          "Giữ lịch học/làm việc cân bằng",
+          "Dành thời gian thư giãn để tránh kiệt sức",
+        ],
+      };
+    }
 
-  // % progress
-  const progressPercent =
-    quiz.length === 0
-      ? 0
-      : Math.round(((index + 1) / quiz.length) * 100);
+    if (score <= 10) {
+      return {
+        title: "Bạn có dấu hiệu Burnout nhẹ ⚠️",
+        desc: "Bạn đang bắt đầu mất năng lượng và động lực.",
+        solutions: [
+          "Chia nhỏ công việc để giảm áp lực",
+          "Thiết lập mục tiêu ngắn hạn rõ ràng",
+          "Tìm sự hỗ trợ từ bạn bè hoặc gia đình",
+        ],
+      };
+    }
 
-  return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center px-4">
-      <div className="w-full max-w-xl bg-zinc-900 rounded-2xl shadow-xl p-8 space-y-6">
+    return {
+      title: "Nguy cơ Burnout cao 🚨",
+      desc:
+        "Bạn có dấu hiệu kiệt sức rõ rệt. Nên nghỉ ngơi và điều chỉnh lại nhịp độ học tập/làm việc.",
+      solutions: [
+        "Giảm khối lượng công việc và nghỉ ngơi có kế hoạch",
+        "Duy trì thói quen sinh hoạt lành mạnh",
+        "Cân nhắc tham vấn tâm lý hoặc mindfulness",
+      ],
+    };
+  };
 
-        {/* ===== MÀN HÌNH BẮT ĐẦU ===== */}
-        {!started && (
-          <div className="text-center space-y-4">
-            <h1 className="text-3xl font-bold">🔥 Burnout Test</h1>
-            <p className="text-zinc-300">
-              Trả lời 10 câu hỏi ngẫu nhiên để phân biệt burnout và lười biếng.
+  const result = getResult();
+
+  // =====================
+  // RESULT PAGE
+  // =====================
+  if (finished) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-purple-100 p-6">
+        <div className="bg-white max-w-xl w-full rounded-3xl shadow-xl p-8 text-center space-y-6">
+          
+          {/* RESULT */}
+          <h1 className="text-3xl font-bold text-gray-800">
+            {result.title}
+          </h1>
+
+          <p className="text-gray-600">{result.desc}</p>
+
+          {/* ===== SOLUTIONS SECTION ===== */}
+          <div className="bg-gray-50 rounded-2xl p-5 text-left">
+            <h2 className="font-semibold text-lg mb-3 text-gray-800">
+              🌱 Gợi ý dành cho bạn
+            </h2>
+
+            <ul className="space-y-2 text-gray-700">
+              {result.solutions.map((item, i) => (
+                <li key={i} className="flex gap-2">
+                  <span>✔️</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* ===== QR CODE ===== */}
+          <div className="flex flex-col items-center gap-3">
+            <p className="text-sm text-gray-500">
+              Quét QR để xem thêm tài liệu hỗ trợ
             </p>
-            <button
-              onClick={startQuiz}
-              className="px-8 py-3 rounded-xl bg-orange-500 hover:bg-orange-400 transition font-semibold"
-            >
-              Bắt đầu
-            </button>
+
+            <Image
+              src="/qr.jpg"
+              alt="QR Code"
+              width={180}
+              height={180}
+              className="rounded-xl shadow-md"
+            />
           </div>
-        )}
 
-        {/* ===== ĐANG LÀM QUIZ ===== */}
-        {started && !done && quiz.length > 0 && (
-          <>
-            {/* Progress bar */}
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span>
-                  Câu {index + 1}/{quiz.length}
-                </span>
-                <span>{progressPercent}%</span>
-              </div>
-              <div className="w-full h-2 bg-zinc-700 rounded-full">
-                <div
-                  className="h-2 bg-emerald-500 rounded-full transition-all"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
-            </div>
+          {/* RESTART */}
+          <button
+            onClick={() => {
+              setIndex(0);
+              setScore(0);
+              setFinished(false);
+            }}
+            className="mt-4 w-full py-3 bg-purple-400 hover:bg-purple-500 text-white rounded-xl transition"
+          >
+            Làm lại bài test
+          </button>
+        </div>
+      </main>
+    );
+  }
 
-            {/* Câu hỏi */}
-            <p className="text-lg mt-6">{quiz[index].text}</p>
+  // =====================
+  // QUESTION PAGE
+  // =====================
+  return (
+    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-purple-100 p-6">
+      <div className="bg-white max-w-xl w-full rounded-3xl shadow-xl p-8 space-y-6 text-center">
 
-            {/* Nút trả lời */}
-            <div className="flex gap-4 mt-6">
-              <button
-                onClick={() => handleAnswer(true)}
-                className="flex-1 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 transition font-semibold"
-              >
-                Có
-              </button>
-              <button
-                onClick={() => handleAnswer(false)}
-                className="flex-1 px-6 py-3 rounded-xl bg-zinc-700 hover:bg-zinc-600 transition font-semibold"
-              >
-                Không
-              </button>
-            </div>
-          </>
-        )}
+        <h2 className="text-sm text-gray-400">
+          Câu {index + 1} / {questions.length}
+        </h2>
 
-        {/* ===== KẾT QUẢ + GIẢI PHÁP ===== */}
-        {done && (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold">📊 Kết quả</h2>
+        <h1 className="text-xl font-semibold text-gray-800">
+          {questions[index].question}
+        </h1>
 
-            <p>🔥 Burnout: {burnoutPercent}%</p>
-            <p>💤 Mệt / lười tạm thời: {100 - burnoutPercent}%</p>
-
-            {burnoutPercent >= 60 ? (
-              <>
-                <p className="text-orange-400 font-semibold">
-                  ⚠️ Bạn có dấu hiệu burnout khá rõ.
-                </p>
-                <ul className="list-disc list-inside text-zinc-300 space-y-1">
-                  <li>Giảm tải công việc, chia nhỏ nhiệm vụ.</li>
-                  <li>Tìm hỗ trợ từ bạn bè, gia đình hoặc cố vấn.</li>
-                  <li>Cân nhắc tư vấn tâm lý nếu kéo dài.</li>
-                </ul>
-              </>
-            ) : (
-              <>
-                <p className="text-emerald-400 font-semibold">
-                  ✅ Bạn có vẻ chỉ mệt hoặc thiếu động lực tạm thời.
-                </p>
-                <ul className="list-disc list-inside text-zinc-300 space-y-1">
-                  <li>Đặt mục tiêu nhỏ, rõ ràng.</li>
-                  <li>Áp dụng Pomodoro.</li>
-                  <li>Giữ nhịp sinh hoạt đều đặn.</li>
-                </ul>
-              </>
-            )}
-
+        <div className="space-y-3">
+          {questions[index].answers.map((ans, i) => (
             <button
-              onClick={startQuiz}
-              className="mt-4 w-full px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 transition font-semibold"
+              key={i}
+              onClick={() => handleAnswer(ans.value)}
+              className="w-full py-3 bg-purple-100 hover:bg-purple-200 rounded-xl transition text-gray-800"
             >
-              🔄 Làm lại
+              {ans.text}
             </button>
-          </div>
-        )}
+          ))}
+        </div>
       </div>
-    </div>
+    </main>
   );
 }
