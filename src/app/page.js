@@ -1,20 +1,47 @@
 "use client";
 
 import { useState } from "react";
-import questions from "./questions";
-import Image from "next/image";
+import { questions as allQuestions } from "./questions";
 
 export default function Home() {
-  const [index, setIndex] = useState(0);
-  const [score, setScore] = useState(0);
+  const [started, setStarted] = useState(false);
   const [finished, setFinished] = useState(false);
+  const [questions, setQuestions] = useState([]);
+  const [index, setIndex] = useState(0);
 
-  // =====================
-  // HANDLE ANSWER
-  // =====================
-  const handleAnswer = (value) => {
-    const newScore = score + value;
-    setScore(newScore);
+  const [burnoutScore, setBurnoutScore] = useState(0);
+  const [lazyScore, setLazyScore] = useState(0);
+
+  const [solutions, setSolutions] = useState([]);
+
+  // ===== RANDOM 10 QUESTIONS =====
+  const randomQuestions = () => {
+    const shuffled = [...allQuestions].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 10);
+  };
+
+  // ===== START QUIZ =====
+  const startQuiz = () => {
+    setQuestions(randomQuestions());
+    setStarted(true);
+    setFinished(false);
+    setIndex(0);
+    setBurnoutScore(0);
+    setLazyScore(0);
+    setSolutions([]);
+  };
+
+  // ===== ANSWER =====
+  const answerQuestion = (answer) => {
+    const q = questions[index];
+
+    setBurnoutScore((prev) => prev + answer.value.burnout);
+    setLazyScore((prev) => prev + answer.value.lazy);
+
+    // lưu solution của câu đó
+    if (q.solution) {
+      setSolutions((prev) => [...prev, q.solution]);
+    }
 
     if (index + 1 < questions.length) {
       setIndex(index + 1);
@@ -23,102 +50,105 @@ export default function Home() {
     }
   };
 
-  // =====================
-  // RESULT + SOLUTIONS
-  // =====================
-  const getResult = () => {
-    if (score <= 6) {
-      return {
-        title: "Bạn đang ổn 👍",
-        desc: "Bạn chưa có dấu hiệu burnout rõ ràng. Hãy tiếp tục duy trì thói quen tốt.",
-        solutions: [
-          "Duy trì ngủ đủ giấc và vận động nhẹ mỗi ngày",
-          "Giữ lịch học/làm việc cân bằng",
-          "Dành thời gian thư giãn để tránh kiệt sức",
-        ],
-      };
-    }
+  // ===== RESULT % =====
+  const total = burnoutScore + lazyScore || 1;
+  const burnoutPercent = Math.round((burnoutScore / total) * 100);
+  const lazyPercent = 100 - burnoutPercent;
 
-    if (score <= 10) {
-      return {
-        title: "Bạn có dấu hiệu Burnout nhẹ ⚠️",
-        desc: "Bạn đang bắt đầu mất năng lượng và động lực.",
-        solutions: [
-          "Chia nhỏ công việc để giảm áp lực",
-          "Thiết lập mục tiêu ngắn hạn rõ ràng",
-          "Tìm sự hỗ trợ từ bạn bè hoặc gia đình",
-        ],
-      };
-    }
-
-    return {
-      title: "Nguy cơ Burnout cao 🚨",
-      desc:
-        "Bạn có dấu hiệu kiệt sức rõ rệt. Nên nghỉ ngơi và điều chỉnh lại nhịp độ học tập/làm việc.",
-      solutions: [
-        "Giảm khối lượng công việc và nghỉ ngơi có kế hoạch",
-        "Duy trì thói quen sinh hoạt lành mạnh",
-        "Cân nhắc tham vấn tâm lý hoặc mindfulness",
-      ],
-    };
-  };
-
-  const result = getResult();
-
-  // =====================
-  // RESULT PAGE
-  // =====================
-  if (finished) {
+  // ================= START SCREEN =================
+  if (!started) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-purple-100 p-6">
-        <div className="bg-white max-w-xl w-full rounded-3xl shadow-xl p-8 text-center space-y-6">
-          
-          {/* RESULT */}
-          <h1 className="text-3xl font-bold text-gray-800">
-            {result.title}
+      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#e6f4ea] via-[#eef7f2] to-[#f4fbf7]">
+        <div className="bg-white p-10 rounded-3xl shadow-xl text-center max-w-md">
+          <h1 className="text-3xl font-bold text-black mb-4">
+            Burnout or Lazy?
           </h1>
 
-          <p className="text-gray-600">{result.desc}</p>
+          <p className="text-gray-700 mb-6">
+            Một bài test nhỏ giúp bạn hiểu bản thân đang kiệt sức hay chỉ
+            thiếu động lực tạm thời 🌿
+          </p>
 
-          {/* ===== SOLUTIONS SECTION ===== */}
-          <div className="bg-gray-50 rounded-2xl p-5 text-left">
-            <h2 className="font-semibold text-lg mb-3 text-gray-800">
-              🌱 Gợi ý dành cho bạn
-            </h2>
+          <button
+            onClick={startQuiz}
+            className="px-6 py-3 bg-emerald-400 text-black font-semibold rounded-full hover:bg-emerald-500 transition"
+          >
+            Bắt đầu
+          </button>
+        </div>
+      </main>
+    );
+  }
 
-            <ul className="space-y-2 text-gray-700">
-              {result.solutions.map((item, i) => (
-                <li key={i} className="flex gap-2">
-                  <span>✔️</span>
-                  <span>{item}</span>
-                </li>
+  // ================= RESULT =================
+  if (finished) {
+    return (
+      <main className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-[#e6f4ea] via-[#eef7f2] to-[#f4fbf7]">
+        <div className="bg-white rounded-3xl shadow-2xl p-10 max-w-xl text-center">
+
+          <h2 className="text-3xl font-bold text-black mb-6">
+            Kết quả của bạn
+          </h2>
+
+          {/* Percent Result */}
+          <div className="space-y-4 mb-6">
+            <p className="text-xl text-black font-semibold">
+              Burnout: {burnoutPercent}%
+            </p>
+
+            <div className="w-full bg-gray-200 rounded-full h-4">
+              <div
+                className="bg-emerald-400 h-4 rounded-full"
+                style={{ width: `${burnoutPercent}%` }}
+              />
+            </div>
+
+            <p className="text-xl text-black font-semibold">
+              Lười biếng: {lazyPercent}%
+            </p>
+
+            <div className="w-full bg-gray-200 rounded-full h-4">
+              <div
+                className="bg-green-300 h-4 rounded-full"
+                style={{ width: `${lazyPercent}%` }}
+              />
+            </div>
+          </div>
+
+          {/* MESSAGE */}
+          <p className="text-gray-800 mb-6 leading-relaxed">
+            {burnoutPercent >= lazyPercent
+              ? "Bạn đang có dấu hiệu burnout. Hãy nghỉ ngơi và chăm sóc bản thân nhiều hơn 🌿"
+              : "Bạn có thể chỉ đang thiếu động lực tạm thời. Một chút kỷ luật nhẹ sẽ giúp bạn quay lại nhịp độ 💚"}
+          </p>
+
+          {/* SOLUTIONS */}
+          <div className="text-left bg-[#f3faf6] p-5 rounded-xl mb-6">
+            <h3 className="font-bold text-black mb-2">
+              🌱 Gợi ý dành cho bạn:
+            </h3>
+
+            <ul className="list-disc pl-5 text-gray-800 space-y-1">
+              {[...new Set(solutions)].slice(0, 5).map((sol, i) => (
+                <li key={i}>{sol}</li>
               ))}
             </ul>
           </div>
 
-          {/* ===== QR CODE ===== */}
-          <div className="flex flex-col items-center gap-3">
-            <p className="text-sm text-gray-500">
-              Quét QR để xem thêm tài liệu hỗ trợ
-            </p>
+          {/* QR */}
+          <p className="italic text-gray-700 mb-3">
+            Nếu bạn vẫn còn đắn đo với lựa chọn của mình thì hãy tham khảo đây nhá
+          </p>
 
-            <Image
-              src="/qr.jpg"
-              alt="QR Code"
-              width={180}
-              height={180}
-              className="rounded-xl shadow-md"
-            />
-          </div>
+          <img
+            src="/qr.jpg"
+            alt="QR"
+            className="mx-auto w-52 rounded-xl shadow-md"
+          />
 
-          {/* RESTART */}
           <button
-            onClick={() => {
-              setIndex(0);
-              setScore(0);
-              setFinished(false);
-            }}
-            className="mt-4 w-full py-3 bg-purple-400 hover:bg-purple-500 text-white rounded-xl transition"
+            onClick={startQuiz}
+            className="mt-8 px-6 py-3 bg-emerald-400 text-black font-semibold rounded-full hover:bg-emerald-500 transition"
           >
             Làm lại bài test
           </button>
@@ -127,27 +157,27 @@ export default function Home() {
     );
   }
 
-  // =====================
-  // QUESTION PAGE
-  // =====================
-  return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-purple-100 p-6">
-      <div className="bg-white max-w-xl w-full rounded-3xl shadow-xl p-8 space-y-6 text-center">
+  // ================= QUESTIONS =================
+  const current = questions[index];
 
-        <h2 className="text-sm text-gray-400">
+  return (
+    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#e6f4ea] via-[#eef7f2] to-[#f4fbf7]">
+      <div className="bg-white p-10 rounded-3xl shadow-xl max-w-md text-center">
+
+        <p className="text-sm text-gray-600 mb-3">
           Câu {index + 1} / {questions.length}
+        </p>
+
+        <h2 className="text-xl font-semibold text-black mb-6">
+          {current?.question}
         </h2>
 
-        <h1 className="text-xl font-semibold text-gray-800">
-          {questions[index].question}
-        </h1>
-
         <div className="space-y-3">
-          {questions[index].answers.map((ans, i) => (
+          {current?.answers.map((ans, i) => (
             <button
               key={i}
-              onClick={() => handleAnswer(ans.value)}
-              className="w-full py-3 bg-purple-100 hover:bg-purple-200 rounded-xl transition text-gray-800"
+              onClick={() => answerQuestion(ans)}
+              className="w-full py-3 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-black font-medium transition"
             >
               {ans.text}
             </button>
